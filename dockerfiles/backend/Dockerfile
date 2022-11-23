@@ -10,6 +10,8 @@ RUN npm ci --only=production
 
 COPY . .
 
+RUN chmod +x script-up.sh
+
 EXPOSE 8000
 
-CMD ["node", "server.js"]
+CMD ["./script-up.sh"]
