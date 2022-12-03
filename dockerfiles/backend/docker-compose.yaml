@@ -15,7 +15,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: DB_USER
       MONGO_INITDB_ROOT_PASSWORD: DB_PASSWORD
     volumes:
-      - /var/mongodb:/data/db
+      - mongodb:/data/db
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh mongodb:27017/test --quiet  
       interval: 5s
@@ -27,6 +27,8 @@ services:
         aliases:
           - mongodb
         ipv4_address: 10.0.1.3
+volumes:
+  mongodb:
 networks:
   backend:
     ipam:
