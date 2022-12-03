@@ -1,0 +1,49 @@
+version: "3.0"
+services:
+  backend:
+    image: "cynic0/reddit-backend:latest"
+    networks:
+      backend:
+        ipv4_address: 10.0.1.2
+    depends_on: 
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: curl http://backend:8000/
+      interval: 5s
+      retries: 5
+      timeout: 3s
+      start_period: 10s
+  frontend:
+    image: "cynic0/reddit-frontend:latest"
+    networks:
+      backend:
+        ipv4_address: 10.0.1.4
+    depends_on:
+      backend:
+        condition: service_healthy
+  mongodb:
+    image: "mongo:latest"
+    restart: "always"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: DB_USER
+      MONGO_INITDB_ROOT_PASSWORD: DB_PASSWORD
+    volumes:
+      - /var/mongodb:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh mongodb:27017/test --quiet
+      interval: 5s
+      retries: 5
+      timeout: 3s
+      start_period: 10s
+    networks:
+      backend:
+        aliases:
+          - mongodb
+        ipv4_address: 10.0.1.3
+networks:
+  backend:
+    ipam:
+      config:
+        - subnet: 10.0.1.0/24
+          gateway: 10.0.1.1
