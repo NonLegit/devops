@@ -2,7 +2,8 @@ version: "3.0"
 services:
   backend:
     image: "cynic0/reddit-backend:latest"
-    networks:
+    restart: "always"
+		networks:
       backend:
         ipv4_address: 10.0.1.2
     depends_on: 
