@@ -3,12 +3,6 @@ services:
   backend:
     image: "cynic0/reddit-backend:latest"
     restart: "always"
-    deploy:
-      resources:
-        limits:
-          memory: 600m
-	reservations:
-	  memory: 512m
     networks:
       backend:
         ipv4_address: 10.0.1.2
