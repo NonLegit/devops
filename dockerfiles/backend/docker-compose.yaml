@@ -5,11 +5,9 @@ services:
     restart: "always"
     resources:
       limits:
-        cpus:
-        memory: 1g
+        memory: 600m
       reservation:
-        cpus:
-        memory: 700m
+        memory: 512m
     networks:
       backend:
         ipv4_address: 10.0.1.2
