@@ -3,6 +3,13 @@ services:
   backend:
     image: "cynic0/reddit-backend:latest"
     restart: "always"
+    resources:
+      limits:
+        cpus:
+        memory: 1g
+      reservation:
+        cpus:
+        memory: 700m
     networks:
       backend:
         ipv4_address: 10.0.1.2
