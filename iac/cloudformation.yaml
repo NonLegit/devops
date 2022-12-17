@@ -104,7 +104,7 @@ Resources:
 
           # Installing EFS dependencies..
           cd /home/ec2-user
-          yum install nfs-utils git rpm-build make -y
+          yum install nfs-utils git rpm-build make wget -y
           git clone https://github.com/aws/efs-utils
           cd efs-utils
           make rpm
@@ -117,7 +117,7 @@ Resources:
           pip3 install botocore
           
           mkdir /home/ec2-user/efs
-          mount -t efs -o iam,accesspoint=${AccessPoint} ${EFS} /home/ec2-user/efs/
+          mount -t efs -o iam,tls,accesspoint=${AccessPoint} ${EFS} /home/ec2-user/efs/
   InstanceRole:
     Type: 'AWS::IAM::Role'
     Properties:
