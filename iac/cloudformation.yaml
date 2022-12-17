@@ -89,6 +89,7 @@ Resources:
     Properties:
       InstanceType: "t2.small"
       ImageId: !Ref LatestAmiId
+      IamInstanceProfile: !Ref InstanceProfile
       KeyName: !Ref KeyPair
       AvailabilityZone: !Select [ 0, !GetAZs '' ]
       NetworkInterfaces:
@@ -97,6 +98,45 @@ Resources:
       Tags:
         - Key: Name
           Value: prod
+      UserData:
+        Fn::Base64: !Sub | 
+          #!/bin/bash -xe
+
+          # Installing EFS dependencies..
+          cd /home/ec2-user
+          yum install nfs-utils git rpm-build make -y
+          git clone https://github.com/aws/efs-utils
+          cd efs-utils
+          make rpm
+          yum -y install build/amazon-efs-utils*rpm
+          cd ..
+          rm -rf efs-utils
+
+          wget https://bootstrap.pypa.io/get-pip.py -O /tmp/get-pip.py
+          python3 /tmp/get-pip.py
+          pip3 install botocore
+          
+          mkdir /home/ec2-user/efs
+          mount -t efs -o iam,accesspoint=${AccessPoint} ${EFS} /home/ec2-user/efs/
+  InstanceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: / 
+  InstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Path: /
+      Roles:
+        - !Ref InstanceRole
   InstanceSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
@@ -230,3 +270,92 @@ Resources:
       ServiceToken: !GetAtt ChangeNSLambda.Arn
       Domain: !Ref ZoneApex
       NameServers: !GetAtt DNSZone.NameServers
+  EFS:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      AvailabilityZoneName: !Select [ 0, !GetAZs '' ]
+      Encrypted: true
+      FileSystemTags:
+      - Key: Name
+        Value: PublicAssestFs
+  MountTargetSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: EFS MountTraget sg.
+      SecurityGroupIngress:
+        - Description: 'Allow NFS traffic in'
+          IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          SourceSecurityGroupId: !GetAtt InstanceSecurityGroup.GroupId
+  MountTarget:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EFS
+      SecurityGroups:
+        - !Ref MountTargetSecurityGroup
+      SubnetId: !Ref PublicSubnet
+  AccessPoint:
+    Type: AWS::EFS::AccessPoint
+    Properties:
+      FileSystemId: !Ref EFS
+      PosixUser:
+        Gid: '1000'
+        Uid: '1000'
+      RootDirectory:
+        Path: '/backend/public'
+        CreationInfo:
+          OwnerGid: '1000'
+          OwnerUid: '1000'
+          Permissions: '700'
+  ChangeEFSPolicyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+      - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+      Policies:
+      - PolicyName: EFSChangePolicy
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: Allow
+            Action:
+            - "elasticfilesystem:PutFileSystemPolicy"
+            - "elasticfilesystem:DeleteFileSystemPolicy"
+            Resource: !GetAtt EFS.Arn
+  ChangeEFSPolicyLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Ref Bucket
+        S3Key: "change-efs-policy.zip"
+      Handler: main
+      Runtime: go1.x
+      Timeout: 30
+      Role: !GetAtt ChangeEFSPolicyRole.Arn
+  ChangeEFSPolicyCustom:
+    Type: 'AWS::CloudFormation::CustomResource'
+    Properties:
+      ServiceToken: !GetAtt ChangeEFSPolicyLambda.Arn
+      EFSId: !Ref EFS
+      EFSArn: !GetAtt EFS.Arn
+      AccessPointArn: !GetAtt AccessPoint.Arn
+      EC2RoleArn: !GetAtt InstanceRole.Arn
+Outputs:
+  EIPOutput:
+    Description: 'EIP of the instance'
+    Value: !GetAtt ElasticIP.PublicIp
+  EFSId:
+    Description: 'Filesystem id of the EFS'
+    Value: !GetAtt EFS.FileSystemId
