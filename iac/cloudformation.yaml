@@ -45,26 +45,26 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: sn-web-A
-  RouteTableWeb: 
+          Value: public-subnet
+  PublicRouteTable: 
     Type: 'AWS::EC2::RouteTable'
     Properties:
       VpcId: !Ref VPC
       Tags:
       - Key: Name
-        Value: rt-web
-  RouteTableWebDefaultIPv4: 
+        Value: public-rt
+  PublicRouteTableDefaultIPv4: 
     Type: 'AWS::EC2::Route'
     DependsOn: InternetGatewayAttachment
     Properties:
-      RouteTableId: !Ref RouteTableWeb
+      RouteTableId: !Ref PublicRouteTable
       DestinationCidrBlock: '0.0.0.0/0'
       GatewayId: !Ref InternetGateway
-  RouteTableAssociationWebA:
+  PublicRouteTableAssociation:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       SubnetId: !Ref PublicSubnet
-      RouteTableId: !Ref RouteTableWeb
+      RouteTableId: !Ref PublicRouteTable
   ElasticIP:
     Type: 'AWS::EC2::EIP'
   EIPAssociation:
@@ -126,30 +126,30 @@ Resources:
   APIRoute:
     Type: 'AWS::Route53::RecordSet'
     Properties:
-      Name: !Join [ "", [ "api", !Ref ZoneApex ] ]
+      Name: !Join [ "", [ "api", ".", !Ref ZoneApex ] ]
       Type: "A"
       HostedZoneId: !Ref DNSZone
       TTL: "300"
       ResourceRecords:
-        - !GetAtt EIP.PublicIp
+        - !GetAtt ElasticIP.PublicIp
   WebRoute:
     Type: 'AWS::Route53::RecordSet'
     Properties:
-      Name: !Join [ "", [ "web", !Ref ZoneApex ] ]
+      Name: !Join [ "", [ "web", ".", !Ref ZoneApex ] ]
       Type: "A"
       HostedZoneId: !Ref DNSZone
       TTL: "300"
       ResourceRecords:
-        - !GetAtt EIP.PublicIp
+        - !GetAtt ElasticIP.PublicIp
   AppRoute:
     Type: 'AWS::Route53::RecordSet'
     Properties:
-      Name: !Join [ "", [ "app", !Ref ZoneApex ] ]
+      Name: !Join [ "", [ "app", ".", !Ref ZoneApex ] ]
       Type: "A"
       HostedZoneId: !Ref DNSZone
       TTL: "300"
       ResourceRecords:
-        - !GetAtt EIP.PublicIp
+        - !GetAtt ElasticIP.PublicIp
   CheckDomainLambda:
     Type: AWS::Lambda::Function
     Properties:
