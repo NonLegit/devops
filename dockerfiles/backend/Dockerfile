@@ -10,6 +10,10 @@ COPY . .
 
 RUN chmod +x script-up.sh
 
+RUN chown -R node:node /home/node
+
 EXPOSE 8000
+
+USER node
 
 CMD ["./script-up.sh"]
