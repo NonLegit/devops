@@ -12,7 +12,7 @@ docker compose down || true
 
 # Dropping the db.
 if [ "$DROPDB" = true ]; then
-    docker volume prune -f
+	docker run --rm --name=dropdb-workaround -v /home/userns-user/mongodb:/mongodb/ bash sh -c 'rm -rf /mongodb/*'
 fi
 
 docker compose up -d
