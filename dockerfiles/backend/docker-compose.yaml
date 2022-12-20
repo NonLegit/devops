@@ -3,6 +3,8 @@ services:
   backend:
     image: "cynic0/reddit-backend:latest"
     restart: "always"
+    volumes:
+      - /var/bind/public:/usr/src/app/public
     networks:
       backend:
         ipv4_address: 10.0.1.2
