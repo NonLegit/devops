@@ -92,19 +92,23 @@ if [ $? -ne 0 ]; then
     # Remove the image.
     docker image rm cynic0/reddit-backend:test
     docker image prune -f
-    rm unit-test.log
     exit 1
 fi
-
 set -e
 
-docker image tag cynic0/reddit-backend:test cynic0/reddit-backend:latest
+
+# Building the production version (ignoring dockerfile, test files, etc)
+rm -rf unit-test.log test mochawesome-report
+echo "Dockerfile" > .dockerignore
+
+docker build -t cynic0/reddit-backend:latest .
 docker image rm cynic0/reddit-backend:test
+
 docker image prune -f
 
 # Push the docker image.
-# docker login --username $DOCKER_CREDS_USR --password $DOCKER_CREDS_PSW
-# docker push cynic0/reddit-backend:latest
+docker login --username $DOCKER_CREDS_USR --password $DOCKER_CREDS_PSW
+docker push cynic0/reddit-backend:latest
 
 # Deleting credentials file from filesystem.
 rm -f /var/jenkins_home/.docker/config.json
@@ -117,4 +121,5 @@ if [ ! -d /var/jenkins_home/docker-compose ]; then
     mkdir /var/jenkins_home/docker-compose/frontend
 fi
 
+# Moving the cloned docker-compose file to the destination for the stage of deploying.
 mv docker-compose.yaml /var/jenkins_home/docker-compose/backend
