@@ -52,6 +52,9 @@ node server.js' > script-up.sh
 
 sed -i "s/<USER>/$DB_CREDS_USR/g;s/<PASSWORD>/$DB_CREDS_PSW/g" package.json
 
+# Delete/ignore unnecessary files.
+rm -rf public
+
 # Build the docker image
 docker build -t cynic0/reddit-backend:test .
 

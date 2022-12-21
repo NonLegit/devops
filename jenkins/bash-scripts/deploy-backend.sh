@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DROPDB=true
-if [ -z $(git log -1 | grep "dropdb" ) ]; then
+if [ -z "$(git log -1 | grep "dropdb" )" ]; then
     DROPDB=false
 fi
 
@@ -12,7 +12,14 @@ docker compose down || true
 
 # Dropping the db.
 if [ "$DROPDB" = true ]; then
-	docker run --rm --name=dropdb-workaround -v /home/userns-user/mongodb:/mongodb/ bash sh -c 'rm -rf /mongodb/*'
+        # Run the intermediate container to delete all static files under public
+        docker run --name=droppingfiles -v /var/bind/public/:/data bash sh -c 'rm -rf /data/*'
+
+        # Now copy the default files into /var/bind/public
+        docker run --rm --name=copyingfile -v /var/bind/public/:/data -v /var/assets/backend/public/:/tocopyfrom bash sh -c 'cp -rp /tocopyfrom/* /data'
+
+        # Drop the database itself.
+        docker volume prune -f
 fi
 
 docker compose up -d
