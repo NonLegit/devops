@@ -15,9 +15,9 @@ git clone https://cynico@github.com/NonLegit/devops.git
 cp devops/dockerfiles/frontend/Dockerfile ..
 cd .. ; rm -rf temp
 
-DEVELOPMENT=false
+DEVELOPMENT=true
 if [ -z "$(git log -1 | grep "development" )" ]; then
-    DEVELOPMENT=true
+    DEVELOPMENT=false
 fi
 
 # Creating the .env file.
