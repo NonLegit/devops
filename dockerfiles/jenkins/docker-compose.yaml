@@ -1,0 +1,21 @@
+version: "3.0"
+services:
+  jenkins:
+    image: "cynic0/jenkins-modified:latest"
+    build:
+      context: .
+      args:
+        - DOCKER_GROUP_ID=REPLACE_ME
+    restart: "always"
+    volumes:
+      - /var/bind/jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      jenkins:
+        ipv4_address: 10.0.0.2
+networks:
+  jenkins:
+    ipam:
+      config:
+        - subnet: 10.0.0.0/24
+          gateway: 10.0.0.1
