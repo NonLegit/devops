@@ -17,6 +17,9 @@ Parameters:
   DropletSSHKeyFingerprint:
     Description: 'Fingerprint of an existing SSH key for the email server droplet'
     Type: String
+  DigitalOceanAPIToken:
+    Description: 'Your DO API token for creation of the email server droplet'
+    Type: String
 Resources:
   VPC:
     Type: AWS::EC2::VPC
@@ -402,7 +405,7 @@ Resources:
       Role: !GetAtt CreateDropletRole.Arn
       Environment:
         Variables:
-          DIGITALOCEAN_API_TOKEN: "dop_v1_1340e0978dc34bee30a0be80fb6e9239cc2b417509154bb3ba8f32798f5a7bee"
+          DIGITALOCEAN_API_TOKEN: !Ref DigitalOceanAPIToken
   CreateDroplet:
     DependsOn: DNSZone
     Type: 'AWS::CloudFormation::CustomResource'
@@ -469,7 +472,7 @@ Resources:
       Role: !GetAtt GetDropletIPRole.Arn
       Environment:
         Variables:
-          DIGITALOCEAN_API_TOKEN: "dop_v1_1340e0978dc34bee30a0be80fb6e9239cc2b417509154bb3ba8f32798f5a7bee"
+          DIGITALOCEAN_API_TOKEN: !Ref DigitalOceanAPIToken
   HostedZoneIdParameter:
     Type: 'AWS::SSM::Parameter'
     Properties:
