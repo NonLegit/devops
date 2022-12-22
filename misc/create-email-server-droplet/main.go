@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-lambda-go/cfn"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/route53"
 
 	"github.com/aws/aws-sdk-go/service/eventbridge"
 	"github.com/aws/aws-sdk-go/service/ssm"
@@ -71,6 +74,80 @@ func createDroplet(ctx context.Context, request cfn.Event) (physicalResourceID s
 
 		_, err = eventBridgeClient.DeleteRule(&eventbridge.DeleteRuleInput{
 			Name: &parameterName,
+		})
+		if err != nil {
+			return request.PhysicalResourceID, map[string]interface{}{}, err
+		}
+
+		// Delete DNS Zone mail records.
+		route53Client := route53.New(sess)
+
+		// Getting the zone apex.
+		sliceOfStrings := strings.Split(parameterName, "-")
+		dnsZoneApex := sliceOfStrings[len(sliceOfStrings)-1]
+
+		// Getting the hosted zone id.
+		hostdZoneIdOutput, err := ssmClient.GetParameter(&ssm.GetParameterInput{
+			Name: RefString("HostedZoneId"),
+		})
+		if err != nil {
+			fmt.Println(err)
+			return request.PhysicalResourceID, map[string]interface{}{}, err
+		}
+
+		// Getting the IP of the droplet.
+		ipOfDropletOutput, err := ssmClient.GetParameter(&ssm.GetParameterInput{
+			Name: RefString("DropletIP"),
+		})
+		if err != nil {
+			fmt.Println(err)
+			return request.PhysicalResourceID, map[string]interface{}{}, err
+		}
+
+		deletionParams := &route53.ChangeResourceRecordSetsInput{
+			ChangeBatch: &route53.ChangeBatch{
+				Changes: []*route53.Change{
+					{
+						Action: RefString("DELETE"),
+						ResourceRecordSet: &route53.ResourceRecordSet{
+							Name: RefString(dnsZoneApex),
+							Type: RefString("MX"),
+							ResourceRecords: []*route53.ResourceRecord{
+								{
+									Value: RefString("10 mail"),
+								},
+							},
+							TTL: aws.Int64(300),
+						},
+					},
+					{
+						Action: RefString("DELETE"),
+						ResourceRecordSet: &route53.ResourceRecordSet{
+							Name: RefString("mail." + dnsZoneApex),
+							Type: RefString("A"),
+							ResourceRecords: []*route53.ResourceRecord{
+								{
+									Value: RefString(*ipOfDropletOutput.Parameter.Value),
+								},
+							},
+							TTL: aws.Int64(300),
+						},
+					},
+				},
+			},
+			HostedZoneId: hostdZoneIdOutput.Parameter.Value,
+		}
+
+		// Deleting the record sets.
+		_, err = route53Client.ChangeResourceRecordSets(deletionParams)
+		if err != nil {
+			fmt.Println(err)
+			return request.PhysicalResourceID, map[string]interface{}{}, err
+		}
+
+		// Deleting the HostedZoneId parameter
+		_, err = ssmClient.DeleteParameter(&ssm.DeleteParameterInput{
+			Name: RefString("HostedZoneId"),
 		})
 		if err != nil {
 			return request.PhysicalResourceID, map[string]interface{}{}, err
