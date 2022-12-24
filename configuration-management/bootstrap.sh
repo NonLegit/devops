@@ -60,6 +60,8 @@ do
     sed -i 's/#REPLACE_END_OF_IF/<\/IfModule>/g' $APACHE_BASE/conf.d/$vhost.conf
 
 done
+sed -i 's/80/443/g' $APACHE_BASE/conf.d/03-app.conf
+
 
 yum install mod_ssl -y
 setsebool -P httpd_can_network_connect 1
