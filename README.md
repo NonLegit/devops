@@ -6,11 +6,11 @@
 <br><br>
 3. A CI/CD pipeline using jenkins is established. The bash scripts run within jenkins are in the *jenkins/bash-scripts* directory. Note that the base pipeline script invoking those is provided in the respective repositories of each team. 
 <br><br>
-4. A CloudFormation yaml file for the creation of all this infrastructure (spanning the two servers in the two cloud provider, and including: compute, networking, DNS, EFS) is provided in the iac directory. Any code that has been utilized within it (as Lambda functions), is included in the *misc* directory.
+4. A CloudFormation yaml file for the creation of all this infrastructure (spanning the two servers in the two cloud providers, and including: compute, networking, DNS, EFS) is provided in the iac directory. Any code that has been utilized within it (as Lambda functions), is included in the *misc* directory.
 <br><br>
-5. A boostrapping bash script is provided for the production instance, though not the separate email instance in the *configuration-management*.
+5. A boostrapping bash script is provided for the production instance, though not the separate email instance in the *configuration-management* directory.
 <br><br>
-6. ELK stack base configuration files are provided in the *elk* directory (ElasticSearch and Kibana). [Source mentioned in the README.md]. Alerts have been set (though manually through Kibana's dashboards, not in the scripts) for CPU and memory usage.
+6. ELK stack base configuration files are provided in the *elk* directory (ElasticSearch and Kibana). [Source mentioned in the README.mdinside the directory]. Alerts have been set (though manually through Kibana's dashboards, not in the scripts) for CPU and memory usage.
 
 ### Notes
 1. I do not deploy a monolith docker-compose file each push/webhook trigger (though, there's a docker-compose file for it in the *dockerfiles* directory). Each service is deployed on its own.
