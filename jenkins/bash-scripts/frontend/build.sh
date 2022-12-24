@@ -32,6 +32,7 @@ REACT_APP_PROXY_PRODUCTION=\"https://api.nonlegit.click/api/v1\"" > .env
 
 if [ "$DEVELOPMENT" = true ]; then
         echo "REACT_APP_ENV=development" >> .env
+        sed -i 's/--omit=dev//g' Dockerfile
 else
         echo "REACT_APP_ENV=production" >> .env
 fi
@@ -40,7 +41,35 @@ fi
 rm -rf README* "Unit Testing" devops .git*
 echo "Dockerfile" > .dockerignore
 
+# Getting latest server-json from the development branch.
+rm -rf data
+git clone -b main https://github.com/NonLegit/Reddit-Front.git
+mv Reddit-Front/data . && rm -rf Reddit-Front
+
+# Run unit testing..
+docker build -t cynic0/reddit-frontend:test .
+set +e
+
+docker run --rm cynic0/reddit-frontend:test npm test > unit-test-frontend.log 2>&1
+if [ $? -ne 0 ]; then
+
+    # Send email to the leader of the frontend team.
+    TO_EMAIL=${TO_EMAIL:-ysi.rabie@gmail.com}
+
+    aws s3 cp unit-test-frontend.log s3://nonlegit-logs
+    aws ses send-email --from "ysi.rabie@gmail.com" --source-arn "arn:aws:ses:us-east-1:965189571202:identity/ysi.rabie@gmail.com" --destination "ToAddresses=$TO_EMAIL" --region us-east-1 --message "Subject={Data=unit test failed},Body={Text={Data=check out this for the logs: https://nonlegit-logs.s3.amazonaws.com/unit-test-frontend.log}}" 
+
+    # Remove the image.
+    docker image rm cynic0/reddit-frontend:test
+    docker image prune -f
+    exit 1
+fi
+
+set -e
+
+rm -f unit-test-frontend.log
 docker build -t cynic0/reddit-frontend:latest . 
+docker image rm cynic0/reddit-frontend:test
 
 # Push the docker image.
 docker login --username $DOCKER_CREDS_USR --password $DOCKER_CREDS_PSW
