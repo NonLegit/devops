@@ -100,7 +100,7 @@ Resources:
       KeyName: !Ref KeyPair
       AvailabilityZone: !Select [ 0, !GetAZs '' ]
       BlockDeviceMappings:
-      - DeviceName: "/dev/xvda"
+      - DeviceName: "/dev/sda1"
         Ebs:
           VolumeType: gp2
           VolumeSize: 30
