@@ -17,7 +17,12 @@ cd API
 
 # Cleaning unnecessary files.
 rm -f README* .gitignore
-rm -rf config
+
+# Replacing migrations with migrations from the development branch.
+rm -rf migrations
+git clone -b development https://cynico@github.com/NonLegit/Backend-Reddit
+mv Backend-Reddit/API/migrations .
+rm -rf Backend-Reddit
 
 # Creating the necessary files.
 echo "NODE_ENV=production
