@@ -14,6 +14,7 @@ Parameters:
   Bucket:
     Description: 'Bucket where your lambda code resides.'
     Type: String
+    Default: "iac-nonlegit"
   DropletSSHKeyFingerprint:
     Description: 'Fingerprint of an existing SSH key for the email server droplet'
     Type: String
@@ -73,6 +74,7 @@ Resources:
   ElasticIP:
     Type: 'AWS::EC2::EIP'
   EIPAssociation:
+    DependsOn: InternetGatewayAttachment
     Type: AWS::EC2::EIPAssociation
     Properties:
       AllocationId: !GetAtt ElasticIP.AllocationId
@@ -97,6 +99,12 @@ Resources:
       IamInstanceProfile: !Ref InstanceProfile
       KeyName: !Ref KeyPair
       AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      BlockDeviceMappings:
+      - DeviceName: "/dev/xvda"
+        Ebs:
+          VolumeType: gp2
+          VolumeSize: 30
+          DeleteOnTermination: true
       NetworkInterfaces:
       - NetworkInterfaceId: !Ref ENI
         DeviceIndex: '0'
@@ -104,25 +112,15 @@ Resources:
         - Key: Name
           Value: prod
       UserData:
-        Fn::Base64: !Sub | 
-          #!/bin/bash -xe
+        Fn::Base64: !Sub |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          ./aws/install
+          rm -rf ./aws*
 
-          # Installing EFS dependencies..
-          cd /home/ec2-user
-          yum install nfs-utils git rpm-build make wget -y
-          git clone https://github.com/aws/efs-utils
-          cd efs-utils
-          make rpm
-          yum -y install build/amazon-efs-utils*rpm
-          cd ..
-          rm -rf efs-utils
-
-          wget https://bootstrap.pypa.io/get-pip.py -O /tmp/get-pip.py
-          python3 /tmp/get-pip.py
-          pip3 install botocore
-          
-          mkdir /home/ec2-user/efs
-          mount -t efs -o iam,tls,accesspoint=${AccessPoint} ${EFS} /home/ec2-user/efs/
+          aws s3 cp s3://iac-nonlegit/bootstrap.sh .
+          chmod +x bootstrap.sh
+          ./bootstrap.sh
   InstanceRole:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -136,6 +134,41 @@ Resources:
             Action:
               - 'sts:AssumeRole'
       Path: /
+      Policies:
+      - PolicyName: EFSDescribeMountTargets
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: Allow
+            Action:
+            - "elasticfilesystem:DescribeMountTargets"
+            Resource: 
+            - "*"
+      - PolicyName: DNSPermsForCerbot
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: Allow
+            Action:
+            - "route53:ListHostedZones"
+            - "route53:GetChange"
+            Resource: 
+            - "*"
+          - Effect: Allow
+            Action:
+            - "route53:ChangeResourceRecordSets"
+            Resource: 
+            - !Join [ "", [ "arn:aws:route53:::hostedzone/", !GetAtt DNSZone.Id ] ]
+      - PolicyName: SecretsAccess
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: Allow
+            Action:
+            - "secretsmanager:GetSecretValue"
+            Resource:
+            - "arn:aws:secretsmanager:us-east-1:735026006451:secret:github-credentials-dQQDeh"
+            - "arn:aws:secretsmanager:us-east-1:735026006451:secret:db-credentials-WsNMZ5"
   InstanceProfile:
     Type: 'AWS::IAM::InstanceProfile'
     Properties:
