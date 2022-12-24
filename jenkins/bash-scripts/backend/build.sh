@@ -26,7 +26,7 @@ rm -rf Backend-Reddit
 
 # Creating the necessary files.
 echo "NODE_ENV=production
-PORT=8000
+PORT=443
 DATABASE=mongodb://$DB_CREDS_USR:$DB_CREDS_PSW@mongodb/$DB_NAME?authSource=admin
 
 FRONTDOMAIN=\"https://web.nonlegit.click\"
