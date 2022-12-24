@@ -10,6 +10,6 @@ COPY . .
 
 RUN chmod +x script-up.sh
 
-EXPOSE 8000
+EXPOSE 443
 
 CMD ["./script-up.sh"]
